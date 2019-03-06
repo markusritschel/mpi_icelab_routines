@@ -45,7 +45,12 @@ import inspect
 import re
 
 import docopt
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import xarray as xr
+
+from harps.helpers import median, grad, savgol, butterworth
 
 VERBOSE = False
 
@@ -122,6 +127,53 @@ def read_harp_file(file, **kwargs):
     ds.coords['time'] = pd.to_datetime(ds.coords['time'])
 
     return ds
+
+
+def read_harp_data(file, module=0):
+    """Read harp data from a file using the `read_harp_file` function and select a module.
+    Certain variables will be calculated:
+    - brine salinity
+    - bulk salinity
+    - solid fraction
+    - liquid fraction"""
+    data = read_harp_file(file)
+    data = data.sel(module=module)
+
+    resistance_channel = 'r10'
+
+    # compute reference resistance
+    r0s = calc_reference_resistance(data, resistance_channel, kind='butterworth', tolerance=(1e-4, 3e-4))
+
+    T_freeze = data['temperature'].sel(time=r0s.coords['time'])
+    T = data['temperature'].where(data['temperature'] < T_freeze)
+
+    return data
+
+
+def calc_reference_resistance(data, resistance_channel='r10', kind='median', tolerance=(1e-4, 3e-4)):
+    """Compute the reference resistance R0 for a given module.
+    """
+    if not isinstance(tolerance, tuple):
+        raise KeyError("Parameter `tolerance` must be a tuple containing two floats.")
+    tolerance = np.sort(tolerance)
+
+    data = data[resistance_channel]
+    data_smooth = eval(kind)(data)
+    data_gradient = median(grad(data_smooth, 20))
+
+    # data_gradient.to_pandas().squeeze().plot()
+    # find values that are in a certain tolerance range and mask others
+    grad_tol = np.where(np.logical_and(data_gradient > tolerance[0], data_gradient < tolerance[1]),
+                        data_gradient, np.nan)
+    # set all those values to common value
+    grad_tol[~np.isnan(grad_tol)] = 1
+
+    # now find the first occurrence in that array which is not NAN
+    freezing_starts = np.nanargmin(grad_tol, axis=0).squeeze()
+    freezing_sel = xr.DataArray(freezing_starts, dims=['wire_pair'])
+    r0s = data[freezing_sel]
+
+    return r0s
 
 
 if __name__ == '__main__':
