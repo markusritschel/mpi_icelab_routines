@@ -11,9 +11,40 @@
 
 x:y: datetime r6 i6 r10 i10 temperature something
 
+    x           : Module ID (0-2)
+    y           : Wire pair (usually going from 0 to 7)
+    datetime    : Time stamp in ISO8601 format
+    r6          : Resistance at 6 kHz [Ohm]
+    i6          : some index
+    r10         : Resistance at 10kHz [Ohm]
+    i10         : some index
+    temperature : Temperature [°C]
+    ?           : ?
+
+Data will be organized in an xarray.Dataset. Modules and parameters can be directly approached from the script (see options).
+
+
+Usage:
+    harp_eval.py FILE --parameter=<VALUE> --module=<ID> [--wire=<ID>] [options]
+    harp_eval.py FILE --parameter=<VALUE> --wire=<ID> [--module=<ID>] [options]
+    harp_eval.py (-h | --help)
+    harp_eval.py --version
+
+Options:
+    -p, --parameter=<VALUE>  The parameter to be evaluated (must be one of 'temperature', 'r6' or 'r10').
+    -m, --module=<ID>        The module/harps to be evaluated (can be single value or comma separated list).
+    -w, --wire=<ID>          The wire pair to be evaluated (can be single value or comma separated list).
+
+    -s, --stat               Show statistics.
+    -v, --verbose            Print more text.
+    -h, --help               Show this screen.
+    --version                Show version.
+
 """
 import inspect
+import re
 
+import docopt
 import pandas as pd
 
 VERBOSE = False
@@ -91,3 +122,10 @@ def read_harp_file(file, **kwargs):
     ds.coords['time'] = pd.to_datetime(ds.coords['time'])
 
     return ds
+
+
+if __name__ == '__main__':
+    args = docopt.docopt(__doc__, version='1.0')
+
+    file = args.pop('FILE')
+    kwargs = {re.sub('^--', '', a): v for a, v in args.items()}
