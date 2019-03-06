@@ -147,7 +147,30 @@ def read_harp_data(file, module=0):
     T_freeze = data['temperature'].sel(time=r0s.coords['time'])
     T = data['temperature'].where(data['temperature'] < T_freeze)
 
+    S_brine = calc_brine_salinity(T, method='Assur')
+
+    # liquid fraction calculated as written in [TODO: Reference]
+    liquid_frac = r0s / data[resistance_channel]
+    liquid_frac = liquid_frac.where(liquid_frac <= 1)
+    solid_frac = 1 - liquid_frac
+    S_bulk = liquid_frac * S_brine
+
+    data = data.assign({'brine salinity': S_brine,
+                        'solid fraction': solid_frac,
+                        'liquid fraction': liquid_frac,
+                        'bulk salinity': S_bulk})
+
     return data
+
+
+def calc_brine_salinity(T, method='Assur'):
+    """Calculate the brine salinity by a given temperature according to one of the following methods:
+    - `Assur` (1958):
+        S = -1.20 - 21.8*T - 0.919*T**2 - 0.0178*T**3
+    """
+    if method == 'Assur':
+        S_brine = -1.20 - 21.8*T - 0.919*T**2 - 0.0178*T**3    # (Assur, 1958)
+    return S_brine
 
 
 def calc_reference_resistance(data, resistance_channel='r10', kind='median', tolerance=(1e-4, 3e-4)):
