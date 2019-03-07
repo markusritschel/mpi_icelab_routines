@@ -151,7 +151,7 @@ def read_harp_data(file, module=0):
 
     # liquid fraction calculated as written in [TODO: Reference]
     liquid_frac = r0s / data[resistance_channel]
-    liquid_frac = liquid_frac.where(liquid_frac <= 1)
+    liquid_frac = liquid_frac.where(liquid_frac <= 1).transpose()
     solid_frac = 1 - liquid_frac
     S_bulk = liquid_frac * S_brine
 
@@ -160,7 +160,7 @@ def read_harp_data(file, module=0):
                         'liquid fraction': liquid_frac,
                         'bulk salinity': S_bulk})
 
-    return data
+    return data.transpose()
 
 
 def calc_brine_salinity(T, method='Assur'):
