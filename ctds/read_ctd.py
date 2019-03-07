@@ -35,6 +35,8 @@ def read_seabird(file, nan_flag=-9.990e-29, **kwargs):
     with open(file, 'r') as f:
         var_names = []
         units = []
+        start_time = None
+        interval = None
         while True:
             line = next(f, None)
             row_no += 1
@@ -57,12 +59,19 @@ def read_seabird(file, nan_flag=-9.990e-29, **kwargs):
             if rx:
                 start_time = pd.to_datetime(rx.group(1))
 
-        # modify names such that there are no blank spaces in between elements
-        var_names[:] = [re.sub("[,]*\s+", "_", var) for var in var_names]
+    if not var_names:
+        raise IOError("No start time found in header! Please check input file.")
+    if not start_time:
+        raise IOError("No start time found in header! Please check input file.")
+    if not interval:
+        raise IOError("No logging interval value found in header! Please check input file.")
 
-        # read rest of the file into a pandas DataFrame
-        df = pd.read_fwf(file, skiprows=row_no, names=var_names,
-                         usecols=range(len(var_names)))  # usecols omits `flag` column
+    # modify names such that there are no blank spaces in between elements
+    var_names[:] = [re.sub("[,]*\s+", "_", var) for var in var_names]
+
+    # read rest of the file into a pandas DataFrame
+    df = pd.read_fwf(file, skiprows=row_no, names=var_names,
+                     usecols=range(len(var_names)))  # usecols omits `flag` column
 
     # remove 'time' column
     df = df.drop([i for i in var_names if 'time' in i.lower()], axis=1, errors='ignore')
