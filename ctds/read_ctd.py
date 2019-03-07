@@ -14,6 +14,21 @@ import pandas as pd
 import re
 
 
+def read_ctd(file, **kwargs):
+    """Check for file type and call respective reader function."""
+    # select reader function based on first line of file
+    with open(file, 'r') as f:
+        line = f.readline()
+        if line.startswith('* Sea-Bird'):
+            ctd_reader_func = read_seabird
+        elif line.startswith('RBR'):
+            ctd_reader_func = read_rbr
+
+    df = ctd_reader_func(file, **kwargs)
+
+    return df
+
+
 def read_seabird(file, nan_flag=-9.990e-29, **kwargs):
     """Read SeaBird CTD file."""
     row_no = 0
