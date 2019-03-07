@@ -75,3 +75,64 @@ def read_seabird(file, nan_flag=-9.990e-29, **kwargs):
         print()
 
     return df
+
+
+def read_rbr(file, nan_flag=-1000., **kwargs):
+    """Read RBR CTD file"""
+    header = {'host_time': 'Host time',
+              'log_time': 'Logger time',
+              'log_start': 'Logging start',
+              'log_end': 'Logging end',
+              'sample_period': 'Sample period'}
+
+    with open(file, 'r') as f:
+        # read header info and find number of lines to skip
+        row_no = 0
+        file_header = ""
+        while True:
+            line = next(f, None)
+            row_no += 1
+            # break on first empty line (= end of header)
+            if line == '\n':
+                break
+            else:
+                file_header += line  # + '\n'
+
+        for k, v in header.items():
+            m = re.search('^{}\s+(\d.+)$'.format(v), file_header, re.MULTILINE)
+            if m:
+                time_str = m.group(1)
+                if len(time_str.split('/')) > 1:
+                    header[k] = pd.to_datetime(time_str, format='%y/%m/%d %H:%M:%S')
+                else:
+                    header[k] = pd.Timedelta(time_str)
+
+        # read in the rest if the file into a pandas DataFrame
+        df = pd.read_csv(file, skiprows=row_no, sep=r"\s+")
+
+    # ensure all columns are numeric
+    df = df.apply(pd.to_numeric, errors='coerce')
+
+    # generate time series and set as index
+    time_idx = pd.date_range(start=header['log_start'], end=header['log_end'], freq=header['sample_period'])
+    df.index = time_idx[:len(df)]
+    df.index = df.index.round(header['sample_period'])
+
+    # set nan_flag as NAN
+    df[df == nan_flag] = np.nan
+
+    df.rename(columns={'Cond': 'Conductivity',
+                       'Temp': 'Temperature',
+                       'Pres': 'Pressure',
+                       'Sal': 'Salinity',
+                       'DensAnom': 'Density_Anomaly'
+                       }, inplace=True)
+
+    df = df.reindex(sorted(df.columns), axis=1)
+
+    if 'verbose' in kwargs:
+        for k, v in header.items():
+            print('{:<14}: {}'.format(k, v))
+        print()
+
+    return df
