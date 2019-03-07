@@ -14,16 +14,16 @@ from scipy import signal
 import xarray as xr
 
 
-def savgol(obj):
+def savgol(obj, axis=0):
     """Helper function to apply a Savitzky-Golay filter to an xarray object."""
-    func = lambda x: signal.savgol_filter(x, 1001, 2, mode='nearest', axis=0)
+    func = lambda x: signal.savgol_filter(x, 1001, 2, mode='nearest', axis=axis)
     return xr.apply_ufunc(func, obj)
 
 
-def butterworth(obj):
+def butterworth(obj, axis=0):
     """Helper function to apply a Butterworth filter to an xarray object."""
     b, a = signal.butter(3, .002, output='ba')
-    func = lambda x: signal.filtfilt(b, a, x, axis=0)
+    func = lambda x: signal.filtfilt(b, a, x, axis=axis)
     return xr.apply_ufunc(func, obj)
 
 
@@ -32,8 +32,8 @@ def median(obj, time=100):
     return obj.rolling(time=time, center=True).median()
 
 
-def grad(obj, dist=2):
+def grad(obj, dist=2, axis=0):
     """Helper function to apply a gradient to an xarray object."""
     obj = obj
-    func = lambda x: np.gradient(x, dist, axis=0)
+    func = lambda x: np.gradient(x, dist, axis=axis)
     return xr.apply_ufunc(func, obj)
