@@ -50,9 +50,12 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from harps.helpers import median, grad, savgol, butterworth
+from .helpers import median, grad, savgol, butterworth
 
 VERBOSE = False
+
+
+__all__ = ['read_harp_file', 'read_harp_data', 'calc_brine_salinity', 'calc_reference_resistance', 'read']
 
 
 def read_harp_file(file, **kwargs):
@@ -160,7 +163,7 @@ def read_harp_data(file, module=0):
                         'liquid fraction': liquid_frac,
                         'bulk salinity': S_bulk})
 
-    return data.transpose()
+    return data
 
 
 def calc_brine_salinity(T, method='Assur'):
@@ -197,6 +200,10 @@ def calc_reference_resistance(data, resistance_channel='r10', kind='median', tol
     r0s = data[freezing_sel]
 
     return r0s
+
+
+# alias
+read = read_harp_data
 
 
 if __name__ == '__main__':
