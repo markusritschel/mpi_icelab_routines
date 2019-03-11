@@ -10,3 +10,5 @@
 from __future__ import division, print_function, absolute_import
 
 from .read_ctd import read_ctd, read_seabird, read_rbr
+
+read = read_ctd
