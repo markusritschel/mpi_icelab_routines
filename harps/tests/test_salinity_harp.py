@@ -15,7 +15,7 @@ import xarray
 
 from harps.salinity_harps import read_harp_file, calc_reference_resistance, read_harp_data, calc_brine_salinity
 
-TESTFILE = '../examples/test_data.dat'
+TESTFILE = '../examples/salinity_harps_test_data.dat'
 
 
 class TestReadFile(unittest.TestCase):
