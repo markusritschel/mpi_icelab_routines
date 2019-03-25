@@ -150,7 +150,7 @@ def read_harp_data(file, module=0):
     T_freeze = data['temperature'].sel(time=r0s.coords['time'])
     T = data['temperature'].where(data['temperature'] < T_freeze)
 
-    S_brine = calc_brine_salinity(T, method='Assur')
+    S_brine = calc_brine_salinity(T, method='Vancoppenolle')
 
     # liquid fraction calculated as written in [TODO: Reference]
     liquid_frac = r0s / data[resistance_channel]
@@ -168,11 +168,33 @@ def read_harp_data(file, module=0):
 
 def calc_brine_salinity(T, method='Assur'):
     """Calculate the brine salinity by a given temperature according to one of the following methods:
-    - `Assur` (1958):
+    - 'Assur' 
+        year: 1958
         S = -1.20 - 21.8*T - 0.919*T**2 - 0.0178*T**3
+        
+    - 'Vancoppenolle'
+        year: 2019
+        doi: 10.1029/2018JC014611
+        S = -18.7*T - 0.519*T**2 - 0.00535*T**3
     """
+    # TODO: add validity range
     if method == 'Assur':
-        S_brine = -1.20 - 21.8*T - 0.919*T**2 - 0.0178*T**3    # (Assur, 1958)
+        a = -1.20
+        b = -21.8
+        c = -0.919
+        d = -0.0178
+        
+    elif method == 'Vancoppenolle':
+        a = 0
+        b = -18.7
+        c = -0.519
+        d = -0.00535
+    
+    else:
+        raise KeyError("Method unknown!")
+    
+    S_brine = a + b*T +c*T**2 +d*T**3
+
     return S_brine
 
 
