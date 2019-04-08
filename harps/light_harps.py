@@ -27,12 +27,13 @@ def read_harp_file(file):
     df.drop(['cnt'], axis=1, inplace=True)
 
     # split first column into harp-module number and wire-pair number and remove the origin column
-    df = df.join(df['identifier'].str.split(':', 3, expand=True).iloc[:, :3].rename(columns={0: 'stick', 1: 'diode', 2: 'amplifier'}))
+    df = df.join(df['identifier'].str.split(':', 3, expand=True).iloc[:, :3].rename(
+        columns={0: 'stick', 1: 'diode', 2: 'amplifier'}))
     df.drop(['identifier'], inplace=True, axis=1, errors='ignore')
 
     # convert content of 'time' column to datetime objects
     df['time'] = pd.to_datetime(df['time'], errors='coerce')  # 'coerce' errors yields NA for non datetime strings
-    df['time'] = df.time.dt.tz_localize(None)                 # remove timezone info
+    df['time'] = df.time.dt.tz_localize(None)  # remove timezone info
     # drop rows with non datetime objects
     df = df.dropna(subset=['time'])
     # set column 'time' as index
@@ -49,7 +50,7 @@ def read_harp_file(file):
 
     _cols = df.columns
 
-    df = df.unstack(level=[1,2,3])
+    df = df.unstack(level=[1, 2, 3])
     lastcol_idx = df.iloc[:, 0].dropna().index
     # ... and fill NANs in all columns backwards such that in each row with `lastcol_idx` are
     # all values of one block
@@ -59,7 +60,7 @@ def read_harp_file(file):
     df = df.loc[lastcol_idx][:-1]  # last row has only one single value in column 1
 
     # convert back to multi index
-    df = df.stack(level=[1,2,3])
+    df = df.stack(level=[1, 2, 3])
 
     # restore original order of the columns
     df = df[_cols]
@@ -74,6 +75,3 @@ def read_harp_file(file):
                 }
 
     return ds
-
-
-

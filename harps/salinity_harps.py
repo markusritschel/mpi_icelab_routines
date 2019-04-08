@@ -72,6 +72,8 @@ def read_harp_file(file, **kwargs):
     # specify column names for entries of the data file
     col_names = ['device', 'time', 'r6', 'i6', 'r10', 'i10', 'temperature', 't_case']
 
+    print('Read salinity harp now... ', end='')
+
     # read csv file into Pandas DataFrame
     df = pd.read_csv(file, names=col_names, index_col=False,
                      skiprows=0, comment='#', sep=' ',
@@ -129,6 +131,8 @@ def read_harp_file(file, **kwargs):
     # ensure time coordinate is datetime object
     ds.coords['time'] = pd.to_datetime(ds.coords['time'])
 
+    print('done')
+
     return ds
 
 
@@ -166,7 +170,7 @@ def read_harp_data(file, module=0):
     return data
 
 
-def calc_brine_salinity(T, method='Assur'):
+def calc_brine_salinity(T, method='Assur', print_formula=False):
     """Calculate the brine salinity by a given temperature according to one of the following methods:
     - 'Assur' 
         year: 1958
@@ -177,23 +181,40 @@ def calc_brine_salinity(T, method='Assur'):
         doi: 10.1029/2018JC014611
         S = -18.7*T - 0.519*T**2 - 0.00535*T**3
     """
-    # TODO: add validity range
+    # TODO: add validity range and mask T/S accordingly
     if method == 'Assur':
         a = -1.20
         b = -21.8
         c = -0.919
         d = -0.0178
-        
+
+    elif method == 'N&W09':
+        a = 0
+        b = -21.4
+        c = -0.886
+        d = -0.0170
+
     elif method == 'Vancoppenolle':
         a = 0
         b = -18.7
         c = -0.519
         d = -0.00535
-    
+
     else:
         raise KeyError("Method unknown!")
-    
+
     S_brine = a + b*T +c*T**2 +d*T**3
+
+    if print_formula:
+        print('-'*60)
+        print('For {}, the S_brine gets calculated according to'.format(method))
+        print('\tS_brine = a + b*T +c*T**2 +d*T**3')
+        print('with: ')
+        print('\ta = {}'.format(a))
+        print('\tb = {}'.format(b))
+        print('\tc = {}'.format(c))
+        print('\td = {}'.format(d))
+        print()
 
     return S_brine
 
