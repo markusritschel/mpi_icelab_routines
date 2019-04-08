@@ -12,10 +12,13 @@ from __future__ import division, print_function, absolute_import
 import pandas
 import unittest
 
-from ctds import read_ctd, read_seabird, read_rbr
+import xarray
+
+from mpi_icelab_routines.ctds import read_ctd, read_seabird, read_rbr
 
 SBE_TESTFILE = '../examples/sbe37sm-example-data.cnv'
 RBR_TESTFILE = '../examples/rbr-example-data.dat'
+SBE_TESTLOG = '../examples/sbe37sm-example-log.dat'
 
 
 class TestSeabird(unittest.TestCase):
@@ -45,6 +48,10 @@ class TestCTD(unittest.TestCase):
         data = read_ctd(SBE_TESTFILE)
         self.assertIsInstance(data, pandas.DataFrame)
         self.assertEqual(data.shape[1], 6)
+
+    def test_seabird_log(self):
+        data = read_ctd(SBE_TESTLOG)
+        self.assertIsInstance(data, xarray.Dataset)
 
     def test_rbr(self):
         data = read_ctd(RBR_TESTFILE)
