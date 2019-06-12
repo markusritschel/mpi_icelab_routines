@@ -178,7 +178,10 @@ def read_seabird(file, nan_flag=-9.990e-29, **kwargs):
             print('\t{:<12} : {}'.format(var, unit))
         print()
 
-    return df
+    ds = df.to_xarray()
+    ds.attrs = units_dict
+
+    return ds
 
 
 def read_rbr(file, nan_flag=-1000., **kwargs):
@@ -254,4 +257,11 @@ def read_rbr(file, nan_flag=-1000., **kwargs):
             print('{:<14}: {}'.format(k, v))
         print()
 
-    return df
+    units_dict = {'Conductivity': 'mS/cm',
+                  'Temperature': '°C',
+                  'Pressure': 'dbar'}
+
+    ds = df.to_xarray()
+    ds.attrs = units_dict
+
+    return ds
