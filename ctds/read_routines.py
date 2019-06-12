@@ -130,11 +130,16 @@ def read_seabird(file, nan_flag=-9.990e-29, **kwargs):
 
     # modify names such that there are no blank spaces in between elements
     var_names[:] = [re.sub(r"[,]*\s+", "_", var) for var in var_names]
+    var_names = [entry.replace('_Practical', '') for entry in var_names]
+
+    units_dict = {var: unit.split(',')[-1].strip() for (var, unit) in zip(var_names, units)
+                  if not var.lower().startswith('time')}
 
     # read rest of the file into a pandas DataFrame
-    df = pd.read_fwf(file, skiprows=row_no, names=var_names,
-                     usecols=range(len(var_names)))  # usecols omits `flag` column
+    df = pd.read_csv(file, skiprows=row_no, sep=r"\s+", names=var_names,
+                     usecols=range(len(var_names)))
 
+    print(df.head())
     # remove 'time' column
     df = df.drop([i for i in var_names if 'time' in i.lower()], axis=1, errors='ignore')
 
@@ -145,7 +150,19 @@ def read_seabird(file, nan_flag=-9.990e-29, **kwargs):
     time_idx = pd.date_range(start=start_time, periods=len(df), freq=interval)
     df.index = time_idx
     df.index = df.index.round(interval)
+
     df.index.name = 'timestamp'
+
+    df.rename(columns={'Salinity_Practical': 'Salinity'}, inplace=True)
+
+    # remove duplicates
+    # for var in df.columns:
+    #     duplicates = [item for item in df.columns if item.startswith(var)]
+    #     duplicates = [item for item in duplicates if len(item) > len(var)]
+    #     df.drop(duplicates, axis=1, errors='ignore', inplace=True)
+
+    # take only columns that match unique var_names
+    df = df[[var for var in set(var_names) if var in df.columns]]
 
     df = df.reindex(sorted(df.columns), axis=1)
 
@@ -157,8 +174,8 @@ def read_seabird(file, nan_flag=-9.990e-29, **kwargs):
         print('{:<11}:'.format('End time  '), time_idx[-1])
         print('{:<11}:'.format('Interval'), interval)
         print('Variables and units:')
-        for var, unit in list(zip(var_names, units))[1:]:
-            print('\t{:<22} : {}'.format(var, unit))
+        for var, unit in units_dict.items():
+            print('\t{:<12} : {}'.format(var, unit))
         print()
 
     return df
