@@ -13,23 +13,24 @@ import re
 import pandas as pd
 
 from cachetools import cached, TTLCache
-licor_cache = TTLCache(maxsize=1, ttl=600)
+licor_cache = TTLCache(maxsize=1, ttl=1800)
 
 
-def read_licor(file):
+def read_licor(file, **kwargs):
     if licor_cache.currsize > 0:
         print('get LiCOR data from cache')
-    return read_licor_serial_log(file)
+    return read_licor_log(file)
 
 
 @cached(cache=licor_cache)
-def read_licor_serial_log(file):
+def read_licor_log(file):
     print('read LiCOR file now... ', end='')
 
-    # default values for header and units
+    # fallback values for header and units if no header in file (could be incorrect)
     # col_names = ['TIMESTAMP', 'Licor_T', 'Licor_P', 'Licor_CO2', 'Licor_H2O', 'Licor_DewPt', 'Licor_Batt']
-    col_names = ["TIMESTAMP", "RECORD", "Licor_T", "Licor_P", "Licor_CO2", "Licor_H2O", "Licor_DewPt", "Licor_Batt", "LoggerBatt", "LoggerTemp", "PAR", "SoilT107"]
-    units = ["TS", "RN", "°CC", "kPa", "ppm", "ppt", "°C", "Volt", "Volt", "°C", "µmol/m^2/s", "°C"]
+    col_names = ["TIMESTAMP", "Licor_T", "Licor_P", "Licor_CO2", "Licor_H2O", "Licor_DewPt", "Licor_Batt",
+                 "LoggerBatt", "LoggerTemp", "PAR", "SoilT107"]
+    units = ["TS", "°CC", "kPa", "ppm", "ppt", "°C", "Volt", "Volt", "°C", "µmol/m^2/s", "°C"]
 
     skiprows = 0
     # read header and units if available
@@ -49,21 +50,29 @@ def read_licor_serial_log(file):
 
     # read data into pandas.DataFrame
     # if header is present, skip respective amount of rows
-    df = pd.read_csv(file, names=col_names,
-                     sep=',', engine='python',
+    df = pd.read_csv(file, names=col_names, sep=',',
                      error_bad_lines=False, skiprows=skiprows)
 
     df = df.dropna(subset=['TIMESTAMP'])                                # drop rows with non datetime objects
     df['TIMESTAMP'] = pd.to_datetime(df['TIMESTAMP'], errors='coerce')  # 'coerce' errors yields NA for non datetime strings
-    df['TIMESTAMP'] = df.TIMESTAMP.dt.tz_localize(None)                 # remove timezone info
+    df['TIMESTAMP'] = df.TIMESTAMP.dt.tz_localize(None)                 # remove timezone information if present
     df.set_index(['TIMESTAMP'], inplace=True)
     df.index.name = df.index.name.lower()
 
+    # purge units_dict
     units_dict.pop("TIMESTAMP", None)
     units_dict.pop("RECORD", None)
 
     # ensure all column dtypes are numeric
     df = df.apply(pd.to_numeric, errors='coerce')
+
+    # convert kPa to hPa
+    if units_dict['P'] == 'kPa':
+        df['P'] *= 10
+        units_dict['P'] = 'hPa'
+
+    # df.rename({'P': 'Pressure'}, axis=1, inplace=True)
+    # units_dict['Pressure'] = units_dict.pop('P')
 
     print('done')
 
@@ -76,5 +85,9 @@ def read_licor_serial_log(file):
 
 if __name__ == '__main__':
     file = '/home/mpim/m300660/Masterarbeit/Data/IceLab/LiCOR/2019-03-28_exp.dat'
-    d = read_licor_serial_log(file)
+    print(licor_cache)
+    d = read_licor(file)
     print(d.info())
+    print(licor_cache)
+    print(d.to_dataframe().head())
+    print(licor_cache)
