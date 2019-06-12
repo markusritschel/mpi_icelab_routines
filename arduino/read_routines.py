@@ -8,6 +8,7 @@
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #
 from __future__ import division, print_function, absolute_import
+import numpy as np
 import pandas as pd
 import re
 
@@ -56,11 +57,14 @@ def read_arduino(file, **kwargs):
 
     # remove redundant columns
     df = df.drop(['millis'], axis=1, errors='ignore')  # drop 'millis' column if existent
-    # rename columns in old datasets
+
+    # rename columns
     df = df.rename(columns={'CO2_value': 'pCO2_air',
+                            'CO2_air': 'pCO2_air',
                             'pH_value_1': 'pH_china',
                             'pH_value_2': 'pH_GMH',
                             'pH_value': 'pH',
+                            'pH (GMH 5550)': 'pH',
                             'T_value': 'T_air',
                             'CO2_state': 'CO2_flag'})
 
@@ -76,6 +80,9 @@ def read_arduino(file, **kwargs):
     if interpolation:
         df.interpolate(method='time', inplace=True)
 
+    # mask values outside reasonable pH range
+    df['pH'] = df['pH'].where(df['pH'].between(0, 14))
+
     if verbose:
         print("Time span:")
         print("    Start: {}".format(df.index[0]))
@@ -83,7 +90,7 @@ def read_arduino(file, **kwargs):
 
     ds = df.to_xarray()
 
-    units = {'CO2_air': 'ppm',
+    units = {'pCO2_air': 'ppm',
              'Temp (GMH 3700)': '°C',
              'Temp (BME280)': '°C',
              'RelHumidity (BME280)': '%',
