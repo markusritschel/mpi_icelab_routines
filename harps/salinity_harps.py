@@ -9,17 +9,17 @@
 #
 """This script reads harp data from a text file which contains the data in the following format:
 
-x:y: datetime r6 i6 r10 i10 temperature something
+i:k: datetime r2 d2 r16 d16 temperature logger_temp
 
-    x           : Module ID (0-2)
-    y           : Wire pair (usually going from 0 to 7)
+    i           : Module ID (index starting at 0)
+    k           : Wire pair (index starting at 0)
     datetime    : Time stamp in ISO8601 format
-    r6          : Resistance at 6 kHz [Ohm]
-    i6          : some index
-    r10         : Resistance at 10kHz [Ohm]
-    i10         : some index
-    temperature : Temperature [°C]
-    ?           : ?
+    r2          : Resistance of the respective wire_pair at 2 kHz [Ohm]
+    d2          : Debugging value
+    r16         : Resistance of the respective wire_pair at 16kHz [Ohm]
+    d16         : Debugging value
+    temperature : Temperature at the respective wire_pair [°C]
+    logger_temp : Temperature of the controller [°C]
 
 Data will be organized in an xarray.Dataset. Modules and parameters can be directly approached from the script (see options).
 
@@ -58,7 +58,7 @@ VERBOSE = False
 __all__ = ['read_harp_file', 'read_harp_data', 'calc_brine_salinity', 'calc_reference_resistance', 'read']
 
 
-def read_harp_file(file, **kwargs):
+def read_harp_file(file, debug=False, **kwargs):
     """Read-out routine for log files of the salinity harps developed by Leif Riemenschneider.
     Non-valid characters get eliminated such that only numeric values remain.
     A xarray.Dataset is created with `time`, `module` and `wire_pair` as coordinates.
@@ -70,9 +70,9 @@ def read_harp_file(file, **kwargs):
     """
 
     # specify column names for entries of the data file
-    col_names = ['device', 'time', 'r6', 'i6', 'r10', 'i10', 'temperature', 't_case']
+    col_names = ['device', 'time', 'r2', 'd2', 'r16', 'd16', 'temperature', 'logger_temp']
 
-    print('Read salinity harp now... ', end='')
+    print('read salinity harp now... ', end='')
 
     # read csv file into Pandas DataFrame
     df = pd.read_csv(file, names=col_names, index_col=False,
@@ -81,7 +81,14 @@ def read_harp_file(file, **kwargs):
 
     # split first column into harp-module number and wire-pair number and remove the origin column
     df = df.join(df['device'].str.split(':', 2, expand=True).iloc[:, :2].rename(columns={0: 'module', 1: 'wire_pair'}))
+
+    # remove redundant columns
     df.drop(['device'], inplace=True, axis=1, errors='ignore')
+
+    # filter data by debugging numbers
+#    if not debug:
+#        df = df.where((df.d2==2) & (df.d16==2))
+#        df.drop(['d2', 'd16'], inplace=True, axis=1, errors='ignore')
 
     # convert content of 'time' column to datetime objects
     df['time'] = pd.to_datetime(df['time'], errors='coerce')  # 'coerce' errors yields NA for non datetime strings
@@ -119,7 +126,7 @@ def read_harp_file(file, **kwargs):
     df.fillna(method='bfill', inplace=True)
 
     # now limit data frame to those respective rows
-    df = df.loc[lastcol_idx][:-1]  # last row has only one single value in column 1
+    df = df.loc[lastcol_idx]#[:-1]  # last row has only one single value in column 1
 
     # convert back to multi index
     df = df.stack(level=1).stack()
@@ -146,7 +153,7 @@ def read_harp_data(file, module=0):
     data = read_harp_file(file)
     data = data.sel(module=module)
 
-    resistance_channel = 'r10'
+    resistance_channel = 'r16'
 
     # compute reference resistance
     r0s = calc_reference_resistance(data, resistance_channel, kind='butterworth', tolerance=(1e-4, 3e-4))
@@ -172,10 +179,10 @@ def read_harp_data(file, module=0):
 
 def calc_brine_salinity(T, method='Assur', print_formula=False):
     """Calculate the brine salinity by a given temperature according to one of the following methods:
-    - 'Assur' 
+    - 'Assur'
         year: 1958
         S = -1.20 - 21.8*T - 0.919*T**2 - 0.0178*T**3
-        
+
     - 'Vancoppenolle'
         year: 2019
         doi: 10.1029/2018JC014611
