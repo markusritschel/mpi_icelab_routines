@@ -27,13 +27,13 @@ def read_ctd(file, **kwargs):
         # yields the first non-empty line
         while not line:
             line = f.readline().rstrip()
-
+        
         # select reader function based on first line
         if line.startswith('* Sea-Bird'):
             ctd_reader_func = read_seabird
         elif line.startswith('RBR'):
             ctd_reader_func = read_rbr
-        elif re.match(r"#\s+(\d+\.\d+,\s+)+", line):
+        elif re.match(r"^#\s+(-*\d+\.\d+,\s+)+", line):
             ctd_reader_func = read_seabird_serial_log
 
     df = ctd_reader_func(file, **kwargs)
@@ -43,28 +43,32 @@ def read_ctd(file, **kwargs):
     return df
 
 
-def read_seabird_serial_log(file):
+def read_seabird_serial_log(file, **kwargs):
+    """Return xarray.Dataset"""
     with open(file, 'r') as f:
         lines = filter(None, (line.rstrip() for line in f))  # omit empty lines
         lines = list((line.lstrip('#') for line in lines))
 
-    col_names = ['temperature', 'conductivity', 'pressure', 'date', 'time']
+    col_names = ['Temperature', 'Conductivity', 'Pressure', 'date', 'time']
     # Salinity is not included by default. Can be changed in SeaTerm (under Windows)
     if len(lines[0].split(',')) == 6:
-        col_names.insert(3, 'salinity')
+        col_names.insert(3, 'Salinity')
 
-    units = {'temperature':  '°C',
-             'conductivity': 'S/m',
-             'pressure':     'dbar',
-             'salinity':     'psu'}
+    units = {'Temperature':  '°C',
+             'Conductivity': 'S/m',
+             'Pressure':     'dbar',
+             'Salinity':     'psu'}
 
-    df = pd.read_csv(io.StringIO('\n'.join(lines)), names=col_names)
+    df = pd.read_csv(io.StringIO('\n'.join(lines)), names=col_names, parse_dates={'timestamp': ['date', 'time']})
 
     # create timestamp and set as index
-    df['timestamp'] = df.date + df.time
-    df.drop(['date', 'time'], axis=1, inplace=True)
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    # df['timestamp'] = df.date.map(str) + df.time
+    # df.drop(['date', 'time'], axis=1, inplace=True)
+    # df['timestamp'] = pd.to_datetime(df['timestamp'])
     df.set_index(['timestamp'], inplace=True)
+
+    # ensure all column dtypes are numeric
+    df = df.apply(pd.to_numeric, errors='coerce')
 
     ds = df.to_xarray()
     ds = ds.assign_attrs(units)
