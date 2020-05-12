@@ -143,7 +143,7 @@ def read_harp_file(file, debug=False, **kwargs):
     return ds
 
 
-def read_harp_data(file, module=0):
+def read_harp_data(file, module=0, resistance_channel='r16', brine_sal_method='Vancoppenolle', tolerance=(2e-4, 4e-4)):
     """Read harp data from a file using the `read_harp_file` function and select a module.
     Certain variables will be calculated:
     - brine salinity
@@ -153,15 +153,13 @@ def read_harp_data(file, module=0):
     data = read_harp_file(file)
     data = data.sel(module=module)
 
-    resistance_channel = 'r16'
-
     # compute reference resistance
-    r0s = calc_reference_resistance(data, resistance_channel, kind='butterworth', tolerance=(1e-4, 3e-4))
+    r0s = calc_reference_resistance(data, resistance_channel, kind='median', tolerance=tolerance)
 
     T_freeze = data['temperature'].sel(time=r0s.coords['time'])
     T = data['temperature'].where(data['temperature'] < T_freeze)
 
-    S_brine = calc_brine_salinity(T, method='Vancoppenolle')
+    S_brine = calc_brine_salinity(T, method=brine_sal_method)
 
     # liquid fraction calculated as written in [TODO: Reference]
     liquid_frac = r0s / data[resistance_channel]
@@ -172,7 +170,8 @@ def read_harp_data(file, module=0):
     data = data.assign({'brine salinity': S_brine,
                         'solid fraction': solid_frac,
                         'liquid fraction': liquid_frac,
-                        'bulk salinity': S_bulk})
+                        'bulk salinity': S_bulk,
+                        'temperature_freeze': T_freeze})
 
     return data
 
@@ -183,17 +182,26 @@ def calc_brine_salinity(T, method='Assur', print_formula=False):
         year: 1958
         S = -1.20 - 21.8*T - 0.919*T**2 - 0.0178*T**3
 
+    - 'N&W09'
+        author: Notz & Worster
+        year: 2009
+        S = -21.4*T - 0.886*T**2 - 0.0170*T**3
+
     - 'Vancoppenolle'
         year: 2019
         doi: 10.1029/2018JC014611
         S = -18.7*T - 0.519*T**2 - 0.00535*T**3
     """
     # TODO: add validity range and mask T/S accordingly
+    # if method == 'Assur':   # ==> Luises Thesis
+    #     a = -1.20
+    #     b = -21.8
+    #     c = -0.919
+    #     d = -0.0178
+
     if method == 'Assur':
-        a = -1.20
-        b = -21.8
-        c = -0.919
-        d = -0.0178
+        a = c = d = 0
+        b = -18.4809
 
     elif method == 'N&W09':
         a = 0
@@ -210,7 +218,7 @@ def calc_brine_salinity(T, method='Assur', print_formula=False):
     else:
         raise KeyError("Method unknown!")
 
-    S_brine = a + b*T +c*T**2 +d*T**3
+    S_brine = a + b*T + c*T**2 + d*T**3
 
     if print_formula:
         print('-'*60)
@@ -226,7 +234,7 @@ def calc_brine_salinity(T, method='Assur', print_formula=False):
     return S_brine
 
 
-def calc_reference_resistance(data, resistance_channel='r10', kind='median', tolerance=(1e-4, 3e-4)):
+def calc_reference_resistance(data, resistance_channel='r16', kind='median', tolerance=(2e-4, 4e-4)):
     """Compute the reference resistance R0 for a given module.
     """
     if not isinstance(tolerance, tuple):

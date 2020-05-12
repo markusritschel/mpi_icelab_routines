@@ -13,7 +13,7 @@ import re
 import pandas as pd
 
 from cachetools import cached, TTLCache
-licor_cache = TTLCache(maxsize=1, ttl=1800)
+licor_cache = TTLCache(maxsize=3, ttl=1800)
 
 
 def read_licor(file, **kwargs):
@@ -30,7 +30,7 @@ def read_licor_log(file):
     # col_names = ['TIMESTAMP', 'Licor_T', 'Licor_P', 'Licor_CO2', 'Licor_H2O', 'Licor_DewPt', 'Licor_Batt']
     col_names = ["TIMESTAMP", "Licor_T", "Licor_P", "Licor_CO2", "Licor_H2O", "Licor_DewPt", "Licor_Batt",
                  "LoggerBatt", "LoggerTemp", "PAR", "SoilT107"]
-    units = ["TS", "°CC", "kPa", "ppm", "ppt", "°C", "Volt", "Volt", "°C", "µmol/m^2/s", "°C"]
+    units = ["TS", "°C", "kPa", "ppm", "ppt", "°C", "Volt", "Volt", "°C", "µmol/m^2/s", "°C"]
 
     skiprows = 0
     # read header and units if available

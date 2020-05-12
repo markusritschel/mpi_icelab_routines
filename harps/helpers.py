@@ -27,7 +27,7 @@ def butterworth(obj, axis=0):
     return xr.apply_ufunc(func, obj)
 
 
-def median(obj, time=100):
+def median(obj, time=200):
     """Helper function to apply a median filter to an xarray object."""
     return obj.rolling(time=time, center=True).median()
 
