@@ -53,4 +53,5 @@ If you have any questions or concerns feel free to contact me via [email](mailto
 
 - [ ] Add the option to group several harps (stacked underneath each other) to simulate “one” device.
 - [ ] Extensive description/readme for the Arduino code
+- [ ] Add a conda environment YAML file
 - [ ] Convert to package to make routines directly accessible in python
