@@ -7,7 +7,7 @@ Also, you can find an `icelab_environ.yaml` file to create a virtual environment
 
 ## Usage
 
-Most of the routines have a CLI and further information on their usage can be obtained by calling the python script with `--help`.
+Some of the routines have a CLI and further information on their usage can be obtained by calling the python script with `--help`.
 
 ## Categories
 
