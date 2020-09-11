@@ -171,7 +171,7 @@ def read_seabird(file: str, nan_flag=-9.990e-29, **kwargs):
     # take only columns that match unique var_names
     df = df[[var for var in set(var_names) if var in df.columns]]
 
-    df = df.reindex(sorted(df.columns), axis=1)
+    df = df.reindex(sorted(map(str.lower, df.columns)), axis=1)
 
     # set nan_flag as NAN
     df[df == nan_flag] = np.nan
