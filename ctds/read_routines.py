@@ -13,6 +13,7 @@ import io
 
 import numpy as np
 import pandas as pd
+import xmltodict
 import re
 
 
@@ -95,6 +96,7 @@ def read_seabird(file, nan_flag=-9.990e-29, **kwargs):
     """
     # parse header
     row_no = 0
+    xml_header = ""
     with open(file, 'r') as f:
         var_names = []
         units = []
@@ -105,6 +107,11 @@ def read_seabird(file, nan_flag=-9.990e-29, **kwargs):
             row_no += 1
             if line.startswith('*END*'):    # end of header
                 break
+
+            line = line.strip('*').strip()
+            rx = re.match(r'^(\s*<.+>\s*)$', line)
+            if rx:
+                xml_header += rx.group(0)
 
             # get names and units
             rx = re.match(r'^# name \d = (?P<variable>.+?): (?P<name>.+?) \[(?P<unit>.+?)\].*$', line)
@@ -180,6 +187,9 @@ def read_seabird(file, nan_flag=-9.990e-29, **kwargs):
 
     ds = df.to_xarray()
     ds.attrs = units_dict
+
+    xml_header = "<root>" + xml_header + "</root>"
+    xml_dict = xmltodict.parse(xml_header)
 
     return ds
 
