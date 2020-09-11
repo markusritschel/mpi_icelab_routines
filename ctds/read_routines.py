@@ -93,6 +93,7 @@ def read_seabird(file, nan_flag=-9.990e-29, **kwargs):
     ds : pandas.DataFrame
         A pandas.DataFrame object containing all the variables from the log file.
     """
+    # parse header
     row_no = 0
     with open(file, 'r') as f:
         var_names = []
@@ -139,7 +140,6 @@ def read_seabird(file, nan_flag=-9.990e-29, **kwargs):
     df = pd.read_csv(file, skiprows=row_no, sep=r"\s+", names=var_names,
                      usecols=range(len(var_names)))
 
-    print(df.head())
     # remove 'time' column
     df = df.drop([i for i in var_names if 'time' in i.lower()], axis=1, errors='ignore')
 
