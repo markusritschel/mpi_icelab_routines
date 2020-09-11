@@ -78,7 +78,7 @@ def read_seabird_serial_log(file, **kwargs):
     return ds
 
 
-def read_seabird(file, nan_flag=-9.990e-29, **kwargs):
+def read_seabird(file: str, nan_flag=-9.990e-29, **kwargs):
     """Read SeaBird CTD internal log file.
     Parameters
     ----------
