@@ -136,7 +136,7 @@ def read_harp_file(file, debug=False, **kwargs):
                 'Resistance' : 'Ohm'}
 
     # ensure time coordinate is datetime object
-    ds.coords['time'] = pd.to_datetime(ds.coords['time'])
+    ds.coords['time'] = pd.to_datetime(ds.time.values)
 
     print('done')
 
