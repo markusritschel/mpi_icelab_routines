@@ -36,7 +36,7 @@ For the master thesis of Markus Ritschel, an Arduino was installed to log data f
 - Greisinger GMH 3700 thermometer
 - Greisinger GMH 5550 pH meter
 - Bosch BME 280 sensor (temeprature, relative humidity, pressure),
-and to control either $\ce{CO2}$ content in the air or the pH value in the water.
+and to control either CO2 content in the air or the pH value in the water.
 You find both the data processing routine as well as the Arduino code in this repository.
 
 This repository also ships with some basic plotting routines to graphically represent the respective data and some iPython notebooks with examples.
